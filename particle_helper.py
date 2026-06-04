@@ -1,5 +1,67 @@
 import numpy as np
 
+def simulate_ball_trajectory(initial_positions, launch_speeds, launch_angles, time_step=0.01, total_time=2):
+    """
+    Simulates the trajectory of a ball launched from a given height with a specified speed and angle.
+
+    Parameters:
+        initial_positions (np.array): The initial position from which the ball is launched (in meters).
+        launch_speeds (np.array): The speed at which the ball is launched (in meters per second).
+        launch_angles (np.array): The angle at which the ball is launched (in degrees).
+        time_step (float): The time interval between calculations (in seconds). Default is 0.1 seconds.
+        total_time (float): The total duration for which the simulation runs (in seconds). Default is 100 seconds.
+
+    Returns:
+        An array of arrays where each one contains the x and y coordinates of the ball's position at each time step.
+    """
+    # Define the acceleration due to gravity (m/s^2)
+    g = 9.81
+    
+    # Generate an array of time points from 0 to total_time with intervals of time_step
+    time_points = np.arange(0, total_time, time_step)
+    
+    positions1 = []
+    
+    # Loop over each time point to calculate the ball's position and velocity
+    for t in time_points:
+        # Ball 1
+        launch_angle_rad1 = np.radians(launch_angles[0])
+        vx1 = launch_speeds[0] * np.cos(launch_angle_rad1)
+        vy1 = launch_speeds[0] * np.sin(launch_angle_rad1)
+        x1 = initial_positions[0][0] + vx1 * t
+        y1 = initial_positions[0][1] + vy1 * t - 0.5 * g * t**2
+        if y1 >= 0:
+            positions1.append((x1, y1))
+        
+    return np.array(positions1)
+
+def simulate_observations(true_positions, observation_noise_std, num_drop_out_interval=0):
+    """
+    Simulates noisy observations of true positions and introduces missing data at specified intervals.
+
+    Parameters:
+        true_positions (numpy.ndarray): The true positions of the object (array of shape (n, 2) for 2D positions).
+        observation_noise_std (float): The standard deviation of the Gaussian noise added to the true positions.
+        num_drop_out_interval (int): The interval number at which the data will be replaced with NaNs. Default is 0 (no dropout).
+
+    Returns:
+        An array of positions with added Gaussian noise and NaNs introduced at the specified interval.
+    """    
+    # Add Gaussian noise to the true positions
+    noisy_positions = true_positions + np.random.normal(0, observation_noise_std, true_positions.shape)
+    
+    # Calculate the range for the intervals where data will be replaced with NaNs
+    intervals_range = len(noisy_positions) // 5
+    
+    f = (num_drop_out_interval - 1) * intervals_range   # Start index for the dropout interval
+    l = num_drop_out_interval * intervals_range         # End index for the dropout interval
+
+    # Replace the specified interval with NaNs to simulate dropout
+    noisy_positions[f: l] = np.nan
+
+    # Return the noisy positions with the introduced NaNs
+    return noisy_positions
+
 class ParticleFilter:
     """
     A class to implement a Particle Filter for tracking an object's position and velocity.
@@ -79,3 +141,5 @@ class ParticleFilter:
         """
         mean = np.average(self.particles, weights=self.weights, axis=0)
         return mean
+
+    
